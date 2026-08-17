@@ -25,6 +25,70 @@ This is an advanced Shopee scraping API that uses mobile native app API intercep
 - Redis-based caching with TTL
 - Rate limiting with burst handling
 
+## Architecture
+```bash
+┌─────────────────────────────────────────────────────┐
+│                   API Gateway                       │
+│              (Express.js Server)                    │
+├─────────────────────────────────────────────────────┤
+│                  Load Balancer                      │
+│              (Request Distribution)                 │
+├─────────────────────────────────────────────────────┤
+│              Authentication Pool                    │
+│           (Token Management & Rotation)             │
+├─────────────────────────────────────────────────────┤
+│              Device Farm Manager                    │
+│         (Android Emulators Management)              │
+├─────────────────────────────────────────────────────┤
+│          Frida Script Injection                     │
+│      (SSL Bypass & API Hooking)                    │
+└─────────────────────────────────────────────────────┘
+```
+
+## Project Structure
+```bash
+shopee-mobile-api-interceptor/
+├── src/
+│   ├── mobile/
+│   │   ├── reverse-engineering/
+│   │   │   ├── apk-analyzer.ts       # APK decompilation & analysis
+│   │   │   ├── ssl-bypass.ts         # SSL pinning bypass techniques
+│   │   │   └── endpoint-discovery.ts # Dynamic API endpoint discovery
+│   │   ├── api-client/
+│   │   │   ├── mobile-client.ts      # Mobile API request replication
+│   │   │   ├── authentication.ts     # Token extraction & management
+│   │   │   └── device-fingerprint.ts # Device ID simulation
+│   │   ├── interception/
+│   │   │   ├── proxy-server.ts       # MITM proxy for traffic capture
+│   │   │   ├── request-logger.ts     # Request/response logging
+│   │   │   └── pattern-analyzer.ts   # API pattern recognition
+│   │   └── scaling/
+│   │       ├── device-farm.ts        # Multiple device simulation
+│   │       ├── session-pool.ts       # Authentication pool management
+│   │       └── load-balancer.ts      # Request distribution
+│   ├── types/
+│   │   ├── mobile-api.types.ts       # Mobile API type definitions
+│   │   └── device.types.ts           # Device configuration types
+│   ├── utils/
+│   │   ├── crypto-utils.ts           # Encryption/decryption utilities
+│   │   ├── proxy-utils.ts            # Proxy rotation utilities
+│   │   └── mobile-headers.ts         # Mobile header generation
+│   └── config/
+│       └── mobile-config.ts          # Mobile-specific configuration
+├── scripts/
+│   ├── setup-frida.ts               # Frida server setup script
+│   ├── capture-traffic.ts           # Traffic capture automation
+│   ├── extract-tokens.ts            # Token extraction script
+│   └── deploy-device-farm.ts        # Device farm deployment
+├── frida-scripts/
+│   ├── ssl-kill-switch.js           # SSL pinning bypass script
+│   ├── api-hook.js                  # API call interception hook
+│   └── token-grabber.js             # Authentication token extraction
+├── docker-compose.yml        # Mobile device farm Docker setup
+├── .env.example              # Mobile-specific environment variables
+└── package.json                     # Updated dependencies
+```
+
 ## Quick Start
 
 ### Prerequisites
@@ -413,3 +477,4 @@ Java.perform(function() {
     };
     console.log("✅ Network header capture started!");
 });
+```
