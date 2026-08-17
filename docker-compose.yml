@@ -1,0 +1,56 @@
+# docker-compose.yml
+services:
+  # Main API Server
+  shopee-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: shopee-mobile-api-interceptor
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - SHOPEE_MOBILE_BASE_URL=https://shopee.co.id/api/v4
+      - SHOPEE_MOBILE_API_VERSION=4.0.0
+      - SHOPEE_APP_PACKAGE=com.shopee.id
+      - SHOPEE_DOMAIN=shopee.co.id
+      - LOG_LEVEL=info
+      - LOG_FILE_PATH=./logs/mobile.log
+      - CACHE_ENABLED=true
+      - CACHE_TTL=300
+      - CACHE_MAX_SIZE=1000
+      - MAX_CONCURRENT_REQUESTS=100
+      - LOAD_BALANCING_STRATEGY=least-busy
+      - CIRCUIT_BREAKER_THRESHOLD=5
+      - HEALTH_CHECK_INTERVAL=30
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./apk-analysis:/app/apk-analysis
+      - ./captured-traffic:/app/captured-traffic
+      - ./device-farm-data:/app/device-farm-data
+    networks:
+      - shopee-network
+    command: npm start
+
+  # Redis for caching
+  redis:
+    image: redis:7-alpine
+    container_name: shopee-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - shopee-network
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+
+networks:
+  shopee-network:
+    driver: bridge
+
+volumes:
+  redis-data:
