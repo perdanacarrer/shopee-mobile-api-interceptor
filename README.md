@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is an advanced Shopee scraping API that uses mobile native app API interception techniques for robust, scalable data extraction.
+The Shopee Mobile API Interceptor project is built to reverse engineer, capture, analyze, and automate mobile API interactions with Shopee by defeating mobile application security defenses.
 
 ## Features
 
@@ -48,46 +48,83 @@ This is an advanced Shopee scraping API that uses mobile native app API intercep
 ## Project Structure
 ```bash
 shopee-mobile-api-interceptor/
-├── src/
-│   ├── mobile/
-│   │   ├── reverse-engineering/
-│   │   │   ├── apk-analyzer.ts       # APK decompilation & analysis
-│   │   │   ├── ssl-bypass.ts         # SSL pinning bypass techniques
-│   │   │   └── endpoint-discovery.ts # Dynamic API endpoint discovery
-│   │   ├── api-client/
-│   │   │   ├── mobile-client.ts      # Mobile API request replication
-│   │   │   ├── authentication.ts     # Token extraction & management
-│   │   │   └── device-fingerprint.ts # Device ID simulation
-│   │   ├── interception/
-│   │   │   ├── proxy-server.ts       # MITM proxy for traffic capture
-│   │   │   ├── request-logger.ts     # Request/response logging
-│   │   │   └── pattern-analyzer.ts   # API pattern recognition
-│   │   └── scaling/
-│   │       ├── device-farm.ts        # Multiple device simulation
-│   │       ├── session-pool.ts       # Authentication pool management
-│   │       └── load-balancer.ts      # Request distribution
-│   ├── types/
-│   │   ├── mobile-api.types.ts       # Mobile API type definitions
-│   │   └── device.types.ts           # Device configuration types
-│   ├── utils/
-│   │   ├── crypto-utils.ts           # Encryption/decryption utilities
-│   │   ├── proxy-utils.ts            # Proxy rotation utilities
-│   │   └── mobile-headers.ts         # Mobile header generation
-│   └── config/
-│       └── mobile-config.ts          # Mobile-specific configuration
-├── scripts/
-│   ├── setup-frida.ts               # Frida server setup script
-│   ├── capture-traffic.ts           # Traffic capture automation
-│   ├── extract-tokens.ts            # Token extraction script
-│   └── deploy-device-farm.ts        # Device farm deployment
-├── frida-scripts/
-│   ├── ssl-kill-switch.js           # SSL pinning bypass script
-│   ├── api-hook.js                  # API call interception hook
-│   └── token-grabber.js             # Authentication token extraction
-├── docker-compose.yml        # Mobile device farm Docker setup
-├── .env.example              # Mobile-specific environment variables
-└── package.json                     # Updated dependencies
+├── src/                            # TypeScript source code
+│   ├── index.ts                    # Main application entry point
+│   ├── api/                        # REST API layer to expose interceptor capabilities
+│   │   └── routes/mobile-routes.ts # Interceptor API routes
+│   ├── config/                     # Configuration definitions
+│   │   └── mobile-config.ts        # Target endpoints, headers, and device settings
+│   ├── mobile/                     # Core Mobile Reverse Engineering & Interception Modules
+│   │   ├── api-client/             # Emulated API Client
+│   │   │   ├── authentication.ts   # Session & auth token management
+│   │   │   ├── device-fingerprint.ts# Device parameters generation (IMEI, Android ID, etc.)
+│   │   │   ├── mobile-client.ts    # Main HTTP client configured for Shopee endpoints
+│   │   │   └── mobile-api-client.ts# Wrappers for specific Shopee API endpoints
+│   │   ├── interception/           # Network Proxy & Traffic Interception
+│   │   │   ├── pattern-analyzer.ts # Analyzes endpoint signatures and response formats
+│   │   │   ├── proxy-server.ts     # MITM proxy engine (handling HTTPS interception)
+│   │   │   └── request-logger.ts   # Structured logger for intercepted payloads
+│   │   ├── reverse-engineering/    # Binary Analysis & Frida Instrumentation
+│   │   │   ├── apk-analyzer.ts     # Extracts endpoint targets, keys, and assets from APK
+│   │   │   ├── endpoint-discovery.ts# Identifies hidden/internal mobile endpoints
+│   │   │   └── ssl-bypass.ts       # Coordinates Frida SSL pinning bypass execution
+│   │   └── scaling/                # Farm & Session Infrastructure
+│   │       ├── device-farm.ts      # Manages physical/emulated Android device clusters
+│   │       ├── load-balancer.ts    # Distributes requests across session/device instances
+│   │       └── session-pool.ts     # Rotates authenticated sessions and device tokens
+│   ├── types/                      # TypeScript type definitions
+│   └── utils/                      # Helper Utilities
+│       ├── crypto-utils.ts         # Cryptographic helpers for payload signing/hashing
+│       ├── mobile-headers.ts       # Mobile-specific header generators
+│       ├── mobile-headers-enhanced.ts# Advanced header emulation (anti-bot headers)
+│       ├── proxy-utils.ts          # Proxy rotation and networking helpers
+│       ├── rate-limiter.ts         # Request rate throttling
+│       └── token-validator.ts      # Validates captured authorization tokens
+├── frida-scripts/                  # Runtime Instrumentation Scripts (Frida Injection)
+│   ├── api-hook.js                 # Hooks native/Java methods generating signatures
+│   ├── ssl-kill-switch.js          # Disables SSL Pinning in real time
+│   ├── token-grabber.js            # Hooks internal state to exfiltrate active session tokens
+│   └── token-grabber-v2.js         # Enhanced hook targeting native token generation logic
+├── scripts/                        # Automation & Setup Shell/TypeScript Scripts
+│   ├── capture-traffic.ts          # Automated traffic interception task
+│   ├── deploy-device-farm.ts       # Device orchestration script
+│   ├── extract-tokens.ts           # Automated token extraction pipeline
+│   ├── setup-all.sh                # Complete environment bootstrap
+│   ├── setup-frida.ts              # Sets up Frida server on target devices
+│   └── start-frida.sh              # Spawns target APK with injected Frida hooks
+├── apk-analysis/                   # Storage for unpacked APK artifacts
+├── captured-traffic/               # Saved requests/responses JSON logs
+└── Dockerfile & docker-compose.yml # Containerized deployment setup
+
 ```
+---
+
+### Approach to Bypass Shopee’s Protection Mechanisms
+
+Shopee employs multi layered mobile client security. The codebase systematically defeats these defenses using dynamic runtime analysis and native hook techniques:
+
+#### 1. Bypassing SSL Pinning & TLS Fingerprinting
+
+* **Mechanism:** Shopee enforces SSL Pinning via custom Android `TrustManager`, OkHttp certificate pinners, or native OpenSSL/BoringSSL checks.
+* **Bypass Strategy (`frida-scripts/ssl-kill-switch.js` & `src/mobile/reverse-engineering/ssl-bypass.ts`):**
+* Hooks Java-level `X509TrustManager`, `TrustManagerFactory`, and `NetworkSecurityConfig` to force trust on custom intercepting CA certificates (used by `proxy-server.ts`).
+* Hooks low-level socket and native SSL verification functions in C/C++ libraries (`libsslc.so` / `libcrypto.so`) to return `0` (Success) regardless of certificate validity.
+
+
+#### 2. Defeating Payload Signing & Device Integrity Checks
+
+* **Mechanism:** Mobile requests require custom signature headers (e.g., `SPC-SIGN`, `SPC-CERT`, device hashes) generated in compiled native code (`.so` binaries) using request parameters, timestamps, and hardcoded salt keys.
+* **Bypass Strategy (`frida-scripts/api-hook.js` & `frida-scripts/token-grabber-v2.js`):**
+* Rather than fully reverse-engineering complex JNI native routines, the project uses **Frida dynamic memory hooking**.
+* It hooks internal native functions responsible for signing request payloads and extracts the output signature directly from memory in real time before transmission.
+* Extracted signatures and tokens are passed back to `extract-tokens.ts` and managed via `session-pool.ts`.
+
+#### 3. Emulating Device Fingerprinting & Anti-Bot Detection
+
+* **Mechanism:** Shopee collects environment telemetry (Android ID, IMEI, build properties, hardware metrics) to identify automated scrapers or non-standard device environments.
+* **Bypass Strategy (`src/mobile/api-client/device-fingerprint.ts` & `src/utils/mobile-headers-enhanced.ts`):**
+* Generates consistent, realistic device fingerprints dynamically (matching genuine Android device specifications).
+* Obfuscates proxy connections using `proxy-utils.ts` and orchestrates multi-device pools via `device-farm.ts` and `load-balancer.ts` to evade IP/device rate limits and behavioral detection.
 
 ## Quick Start
 
